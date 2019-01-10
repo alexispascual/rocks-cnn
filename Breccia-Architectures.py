@@ -13,8 +13,8 @@ import readBrecciaDataset
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
+
 from keras.models import Sequential, load_model, Model
-from keras.utils import plot_model
 
 # Generic NN layers
 from keras.layers import Dense, Dropout, Flatten
@@ -23,7 +23,8 @@ from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D, Input, DepthwiseConv2D, ZeroPadding2D
 
 # Import utils
-from keras.utils import np_utils
+from keras.utils import np_utils, plot_model
+from sklearn.utils import shuffle
 
 # Import Callbacks
 from keras.callbacks import ModelCheckpoint
@@ -193,9 +194,12 @@ def GetImages(datasetDirectory, imageSize, channels):
         images, labels = readBrecciaDataset.readTrainingData(datasetDirectory, imageSize, imageSize, channels)
 
     else:
-    	print("Images file present! Loading Images and Labels...")
-    	images = np.load(imagesNPYFile)
-    	labels = np.load(labelsNPYFile)
+        print("Images file present! Loading Images and Labels...")
+        images = np.load(imagesNPYFile)
+        labels = np.load(labelsNPYFile)
+        print("{} images and {} classes".format(len(images), len(labels)))
+        print("Shuffling images and labels")
+        images, labels = shuffle(images, labels)
 
     return images, labels
 
@@ -293,7 +297,7 @@ def EvaluateModel (history, modelName, saveDirectory):
     plt.title(modelName + ' Accuracy')
     plt.ylabel('Accuracy')
     plt.xlabel('Epoch')
-    plt.legend(['Train', 'Test'], loc='lower right')
+    plt.legend(['Training', 'Validation'], loc='center right')
     plt.savefig(accGraphFileName)
     plt.close()
 
@@ -303,7 +307,7 @@ def EvaluateModel (history, modelName, saveDirectory):
     plt.title(modelName + 'Loss')
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
-    plt.legend(['Train', 'Test'], loc='upper right')
+    plt.legend(['Training', 'Validation'], loc='center right')
     plt.savefig(lossGraphFileName)
     plt.close()
 
@@ -313,7 +317,7 @@ def EvaluateModel (history, modelName, saveDirectory):
     plt.title(modelName + ' Precision')
     plt.ylabel('Precision')
     plt.xlabel('Epoch')
-    plt.legend(['Train', 'Test'], loc='lower right')
+    plt.legend(['Training', 'Validation'], loc='center right')
     plt.savefig(precisionGraphFileName)
     plt.close()
 
@@ -323,7 +327,7 @@ def EvaluateModel (history, modelName, saveDirectory):
     plt.title(modelName + ' Recall')
     plt.ylabel('Recall')
     plt.xlabel('Epoch')
-    plt.legend(['Train', 'Test'], loc='lower right')
+    plt.legend(['Training', 'Validation'], loc='center right')
     plt.savefig(recallGraphFileName)
     plt.close()
 
@@ -333,7 +337,7 @@ def EvaluateModel (history, modelName, saveDirectory):
     plt.title(modelName + ' F-Score')
     plt.ylabel('F-Score')
     plt.xlabel('Epoch')
-    plt.legend(['Train', 'Test'], loc='lower right')
+    plt.legend(['Training', 'Validation'], loc='center right')
     plt.savefig(fScoreGraphFileName)
     plt.close()
 
@@ -344,8 +348,7 @@ def EvaluateModel (history, modelName, saveDirectory):
 if __name__ == "__main__":
 
     # Define Models to Include
-    models = ["VGG16", "VGG19", "ResNet50", "InceptionV3", "InceptionResNetV2", "MobileNetV2", "DenseNet121", "DenseNet169", "DenseNet201"]
-
+    models = ["DenseNet201", "VGG16", "VGG19", "ResNet50", "InceptionV3", "InceptionResNetV2", "MobileNetV2", "DenseNet121", "DenseNet169"]
     # Define hyper parameters
     channels = 3
     classes = 2
@@ -413,7 +416,7 @@ if __name__ == "__main__":
                 zoom_range=0.2)
 
             # Define model file name
-            saveDirectory = "./Results/" + model  + " Trial " + str(i)
+            saveDirectory = "./BrecciaResults/" + model  + " Trial " + str(i)
             modelFilePath = os.path.join(saveDirectory, "Breccia Dataset - " + model + ".h5")
 
             if not  os.path.exists(saveDirectory):

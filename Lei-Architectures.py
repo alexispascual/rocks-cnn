@@ -24,6 +24,7 @@ from keras.layers import Conv2D, MaxPooling2D, Input, DepthwiseConv2D, ZeroPaddi
 
 # Import utils
 from keras.utils import np_utils
+from sklearn.utils import shuffle
 
 # Import Callbacks
 from keras.callbacks import ModelCheckpoint
@@ -89,7 +90,7 @@ def DefineArchitecture(architectureName):
         imageSize = 224
         baseModel = DenseNet201(weights='imagenet', include_top=True)
 
-    elif architectureName == "Custom Model 1":
+    elif architectureName == "Custom Model (1-Layer Network w 32 Filters)":
         imageSize = 128
 
         baseModel = Sequential()
@@ -100,7 +101,7 @@ def DefineArchitecture(architectureName):
         baseModel.add(Dropout(0.5))
         baseModel.add(Dense(9, activation='softmax'))
 
-    elif architectureName == "Custom Model 2":
+    elif architectureName == "Custom Model (2-Layer Network)":
         imageSize = 128
 
         baseModel = Sequential()
@@ -113,11 +114,22 @@ def DefineArchitecture(architectureName):
         baseModel.add(Dropout(0.5))
         baseModel.add(Dense(9, activation='softmax'))
 
-    elif architectureName == "Custom Model 3":
+    elif architectureName == "Custom Model (1-Layer Network w 64 Filters)":
         imageSize = 128
 
         baseModel = Sequential()
         baseModel.add(Conv2D(64, (3, 3), activation='relu', input_shape=(128,128,3)))
+        baseModel.add(MaxPooling2D(pool_size=(2,2)))
+        baseModel.add(Flatten())
+        baseModel.add(Dense(128, activation='relu'))
+        baseModel.add(Dropout(0.5))
+        baseModel.add(Dense(9, activation='softmax'))
+
+    elif architectureName == "Custom Model (1-Layer Network w 128 Filters)":
+        imageSize = 128
+
+        baseModel = Sequential()
+        baseModel.add(Conv2D(128, (3, 3), activation='relu', input_shape=(128,128,3)))
         baseModel.add(MaxPooling2D(pool_size=(2,2)))
         baseModel.add(Flatten())
         baseModel.add(Dense(128, activation='relu'))
@@ -137,7 +149,7 @@ def DefineArchitecture(architectureName):
         baseModel.add(Flatten())
         baseModel.add(Dense(128, activation='relu'))
         baseModel.add(Dropout(0.5))
-        baseModel.add(Dense(9, activation='softmax'))
+        baseModel.add(Dense(5, activation='softmax'))
 
     elif architectureName == "Custom Model (Lei CFCN)":
         imageSize = 128
@@ -171,7 +183,7 @@ def DefineArchitecture(architectureName):
         dense = Flatten()(merged3)
         output = Dense(128, activation='relu')(dense)
         dropout = Dropout(0.5)(output)
-        predictions = Dense(9, activation='softmax')(dropout)
+        predictions = Dense(5, activation='softmax')(dropout)
         baseModel = Model(inputs = modelInput, outputs = predictions)
 
 
@@ -194,9 +206,12 @@ def GetImages(datasetDirectory, imageSize, channels):
         images, labels = readLeiDataset.readTrainingData(datasetDirectory, imageSize, imageSize, channels)
 
     else:
-    	print("Images file present! Loading Images and Labels...")
-    	images = np.load(imagesNPYFile)
-    	labels = np.load(labelsNPYFile)
+        print("Images file present! Loading Images and Labels...")
+        images = np.load(imagesNPYFile)
+        labels = np.load(labelsNPYFile)
+        print("{} images and {} classes".format(len(images), len(labels)))
+        print("Shuffling images and labels")
+        images, labels = shuffle(images, labels)
 
     return images, labels
 
@@ -255,7 +270,7 @@ def EvaluateModel (history, modelName, saveDirectory):
     plt.title(modelName + ' Accuracy')
     plt.ylabel('Accuracy')
     plt.xlabel('Epoch')
-    plt.legend(['Train', 'Test'], loc='lower right')
+    plt.legend(['Training', 'Validation'], loc='center right')
     plt.savefig(accGraphFileName)
     plt.close()
 
@@ -265,7 +280,7 @@ def EvaluateModel (history, modelName, saveDirectory):
     plt.title(modelName + 'Loss')
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
-    plt.legend(['Train', 'Test'], loc='upper right')
+    plt.legend(['Training', 'Validation'], loc='center right')
     plt.savefig(lossGraphFileName)
     plt.close()
 
@@ -278,9 +293,10 @@ if __name__ == "__main__":
 
 
     # Define Models to Include
-    # models = ["MobileNetV2", "DenseNet121", "DenseNet169", "DenseNet201", "Custom Model 1", "Custom Model 2", "Custom Model 3"]
-    models = ["InceptionResNetV2", "InceptionV3", "Custom Model 1", "Custom Model 2", "Custom Model 3"]
-    # models = ["Custom Model (Lei - Linear)", "Custom Model (Lei CFCN)"]
+    # models = ["Custom Model (1-Layer Network w 32 Filters)", "Custom Model (1-Layer Network w 64 Filters)", "Custom Model (1-Layer Network w 128 Filters)", "Custom Model (2-Layer Network)"]
+    # models = ["InceptionResNetV2", "InceptionV3", "Custom Model 1", "Custom Model 2", "Custom Model 3"]
+    # models = ["Custom Model (Lei CFCN)"]
+    models = ["DenseNet201", "VGG16", "VGG19", "ResNet50", "InceptionV3", "InceptionResNetV2", "MobileNetV2", "DenseNet121", "DenseNet169"]
 
     # Define hyper parameters
     channels = 3
@@ -297,6 +313,10 @@ if __name__ == "__main__":
             # Get image size requirement for each base model
             baseModel = None
             modifiedModel = None
+            selfTestImages = None
+            selfTestLabels = None
+            images = None
+            labels= None
             imageSize, baseModel = DefineArchitecture(model)
             checkModelName = model.split(" ")
             checkModelName = checkModelName[0]
@@ -328,11 +348,11 @@ if __name__ == "__main__":
 
             print(modifiedModel.summary())
 
-            # Get training images
+            # Get training images and labels in categorical format
             images, labels = GetImages(datasetDirectory, imageSize, channels)
 
             # Convert 1-dimensional class arrays to n-dimensional class matrices
-            labels = np_utils.to_categorical(labels - 1, classes)
+            # labels = np_utils.to_categorical(labels - 1, classes)
 
             # Split the data into training and validation set
             x_train, x_validation, y_train, y_validation = train_test_split(images, labels, test_size=0.3, random_state=np.random.randint(1000))
@@ -352,7 +372,7 @@ if __name__ == "__main__":
                 zoom_range=0.2)
 
             # Define Save Directory
-            saveDirectory = "./ResultsGPU/" + model + " Trial " + str(i)
+            saveDirectory = "./Results/" + model + " Trial " + str(i)
 
             # Define model file name
             modelFilePath = os.path.join(saveDirectory, "Lei Dataset - " + model + ".h5")
