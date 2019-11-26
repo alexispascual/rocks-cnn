@@ -1,0 +1,20 @@
+---
+channels: 3
+classes: 9
+trials: 10
+epochs: 200
+batch_size: 16
+dataset: "Breccia" # "Lei"
+datasetDirectory: "./Rock Dataset/training_set"
+customImageSize: 128 #256
+models:
+  - "VGG16"
+  - "VGG19"
+  - "DenseNet121"
+  - "DenseNet169"
+  - "DenseNet201"
+  - "ResNet50"
+  - "InceptionV3"
+  - "InceptionResNetV2"
+  - "MobileNetV2"
+...
